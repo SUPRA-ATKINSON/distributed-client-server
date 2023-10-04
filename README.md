@@ -5,7 +5,7 @@ To run server :
 3. #load "server.fs";;
 4. Server.main[||];;
 
-To run client :
-Steps-1,2 are same as server\n
-3. #load "client.fs";;\n
-4. Client.main[||];;\n
+To run client :<br><br>
+Steps-1,2 are same as server<br>
+3. #load "client.fs";;<br>
+4. Client.main[||];;

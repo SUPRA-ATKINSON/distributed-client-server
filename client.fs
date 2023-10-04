@@ -28,8 +28,11 @@ let connectToServer (ipAddress : IPAddress) (port : int) =
             else
                 writer.WriteLine(message)
                 writer.Flush()
-                let response = reader.ReadLine()
-                Console.WriteLine("Server response: " + response)
+
+            // Read and print the server's response
+            let response = reader.ReadLine()
+            Console.WriteLine("Server response: " + response)
+
         client.Close()
         printfn "Connection closed."
     }

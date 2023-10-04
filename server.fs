@@ -24,20 +24,18 @@ let handleClient (clientSocket : Socket) =
 
         Console.WriteLine("Client connected: " + clientSocket.RemoteEndPoint.ToString())
 
-        // Send a welcome message to the client
-        writer.WriteLine("Hello!")
-        writer.Flush()
 
         let rec processStream () =
             async {
                 let! data = reader.ReadLineAsync() |> Async.AwaitTask
                 if not (String.IsNullOrEmpty(data)) then
-                    Console.WriteLine("Received: " + data)
+                    Console.WriteLine("Received from "+clientSocket.RemoteEndPoint.ToString()+" "+ data)
                     let inputs = data.Split(' ')
                     if inputs.Length >= 3 && inputs.Length <= 5 then
                         let command = inputs.[0]
                         let numbers = Array.map Int32.Parse (Array.sub inputs 1 (inputs.Length - 1))
                         let result = calculate command (Array.toList numbers)
+                        Console.WriteLine("Responding to client "+clientSocket.RemoteEndPoint.ToString()+" with result: "+result.ToString())
                         writer.WriteLine(result)
                         writer.Flush()
                     else

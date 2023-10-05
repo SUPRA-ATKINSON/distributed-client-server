@@ -45,6 +45,7 @@ let parseInputs (inputs: string array) =
     with
     | _ -> None, -4 // Error code -4: one or more of the inputs contain(s) non-number(s)
 
+let terminateFlag = ref false
 
 let handleClient (clientSocket: Socket) =
     async {
@@ -68,6 +69,11 @@ let handleClient (clientSocket: Socket) =
                             //Console.WriteLine("Client disconnected: " + clientEndPoint)
                             writer.WriteLine(-5) // Error code -5: Connection closed
                             writer.Flush()
+                            return! processStream ()
+                        elif data = "terminate" then
+                            writer.WriteLine(-5) // Acknowledge termination to the client
+                            writer.Flush()
+                            terminateFlag := true // Set the termination flag
                             return! processStream ()
                         else 
                             let inputs = data.Split(' ')
@@ -131,7 +137,11 @@ let main argv =
             try
                 let! clientSocket = Async.AwaitTask(serverSocket.AcceptAsync())
                 Async.Start(handleClient clientSocket) |> ignore
-                return! acceptClients ()
+                if !terminateFlag then
+                    serverSocket.Close()
+                    return ()
+                else
+                    return! acceptClients ()
             with
             | :? System.ObjectDisposedException -> return () // Server socket closed, stop accepting clients
         }

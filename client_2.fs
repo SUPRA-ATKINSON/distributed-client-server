@@ -25,7 +25,7 @@ let establishConnection (ipAddress: IPAddress) (port: int) =
             writer.Flush()
 
             // Check for termination conditions
-            if message = "bye" || message = "terminate" then
+            if message = "terminate" then
                 // Read and print the server's response
                 let response = reader.ReadLine()
                 Console.WriteLine("Server response: " + response)
@@ -33,8 +33,11 @@ let establishConnection (ipAddress: IPAddress) (port: int) =
             else
                 // Read and print the server's response
                 let response = reader.ReadLine()
-                Console.WriteLine("Server response: " + response)
-                true
+                if response = "-5" then
+                    false
+                else 
+                    Console.WriteLine("Server response: " + response)
+                    true
 
         let mutable keepRunning = true
         while keepRunning do

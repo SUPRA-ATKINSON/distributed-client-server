@@ -6,7 +6,7 @@ open System.Net.Sockets
 open System.Text
 open System.IO
 
-let establishConnection (ipAddress : IPAddress) (port : int) =
+let establishConnection (ipAddress: IPAddress) (port: int) =
     async {
         let client = new TcpClient()
         do! client.ConnectAsync(ipAddress, port) |> Async.AwaitTask
@@ -15,23 +15,26 @@ let establishConnection (ipAddress : IPAddress) (port : int) =
         use reader = new StreamReader(networkStream)
         use writer = new StreamWriter(networkStream)
 
+        // Read and print the initial server response (hello message)
+        let helloMessage = reader.ReadLine()
+        Console.WriteLine("Server says: " + helloMessage)
+
         let rec readAndPrint () =
             let message = Console.ReadLine()
-            if message = "bye" then
-                return false
-            elif message = "terminate" then
-                writer.WriteLine(message)
-                writer.Flush()
-                return false
+            writer.WriteLine(message)
+            writer.Flush()
+
+            // Check for termination conditions
+            if message = "bye" || message = "terminate" then
+                // Read and print the server's response
+                let response = reader.ReadLine()
+                Console.WriteLine("Server response: " + response)
+                false
             else
-                writer.WriteLine(message)
-                writer.Flush()
-
-            // Read and print the server's response
-            let response = reader.ReadLine()
-            Console.WriteLine("Server response: " + response)
-
-            return true
+                // Read and print the server's response
+                let response = reader.ReadLine()
+                Console.WriteLine("Server response: " + response)
+                true
 
         let mutable keepRunning = true
         while keepRunning do
@@ -43,7 +46,7 @@ let establishConnection (ipAddress : IPAddress) (port : int) =
 
 let main argv =
     let ipAddress = IPAddress.Parse("127.0.0.1") 
-    let port = 35627 
+    let port = 23456 
 
     printfn "Establishing connection..."
     Async.RunSynchronously (establishConnection ipAddress port)

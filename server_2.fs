@@ -24,13 +24,27 @@ let calculate (command: string) (numbers: int list) =
     | "add" -> List.sum numbers
     | "subtract" -> List.reduce (-) numbers
     | "multiply" -> List.reduce (*) numbers
-    | _ -> 0 // Handle invalid command
+    | _ -> -1 // Handle incorrect operation command with error code -1
 
 let sendHello (writer: StreamWriter) =
     Console.WriteLine("Sending Hello message...")
     let helloMsg = "Hello"
     writer.WriteLine(helloMsg)
     writer.Flush()
+
+
+let parseInputs (inputs: string array) =
+    try
+        let numbers = Array.map Int32.Parse inputs
+        if Array.length numbers = 1 then
+            None, -2
+        elif Array.length numbers >= 2 && Array.length numbers <= 4 then
+            Some (Array.toList numbers), 0 // Return a list of numbers and error code 0 (no error)
+        else
+            None, -3 // Error code -3: number of inputs is more than four or less than two
+    with
+    | _ -> None, -4 // Error code -4: one or more of the inputs contain(s) non-number(s)
+
 
 let handleClient (clientSocket: Socket) =
     async {
@@ -47,19 +61,37 @@ let handleClient (clientSocket: Socket) =
             async {
                 try
                     let! data = reader.ReadLineAsync() |> Async.AwaitTask
-                    if not (String.IsNullOrEmpty(data)) then
+                    if not (String.IsNullOrEmpty data) then
                         Console.WriteLine("Received from " + clientSocket.RemoteEndPoint.ToString() + ": " + data)
                         let inputs = data.Split(' ')
-                        if inputs.Length >= 3 && inputs.Length <= 5 then
-                            let command = inputs.[0]
-                            let numbers = Array.map Int32.Parse (Array.sub inputs 1 (inputs.Length - 1))
-                            let result = calculate command (Array.toList numbers)
-                            Console.WriteLine("Responding to client " + clientSocket.RemoteEndPoint.ToString() + " with result: " + result.ToString())
-                            writer.WriteLine(result)
+                        let command_init = inputs.[0]
+                        let op_code = ["add"; "subtract"; "multiply"]
+                        let contains_op = List.contains command_init op_code
+                        if Array.length inputs = 1 then
+                            writer.WriteLine(-1) // Error code -2: number of inputs is less than two
                             writer.Flush()
                             return! processStream ()
+                        
+                        elif not contains_op then
+                            writer.WriteLine(-1)
+                            writer.Flush()
+                            return! processStream ()
+                        
+                        elif Array.length inputs >= 2 then
+                            let command = inputs.[0]
+                            let parsedInputs, errorCode = parseInputs (Array.sub inputs 1 (inputs.Length - 1))
+                            match parsedInputs with
+                            | Some numbers ->
+                                let result = calculate command numbers
+                                writer.WriteLine(result)
+                                writer.Flush()
+                                return! processStream ()
+                            | None ->
+                                writer.WriteLine(errorCode) // Send error code to client
+                                writer.Flush()
+                                return! processStream ()
                         else
-                            writer.WriteLine("Invalid command. Usage: add/subtract/multiply number1 number2 ...")
+                            writer.WriteLine(-2) // Error code -2: number of inputs is less than two
                             writer.Flush()
                             return! processStream ()
                     else
